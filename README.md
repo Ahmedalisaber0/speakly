@@ -35,6 +35,16 @@ Spanish, French, German, Italian, Portuguese, Japanese, Korean, Arabic, Chinese,
 - Node.js 18+
 - [Groq API Key](https://console.groq.com/keys)
 
+### ⚠️ Windows PowerShell Setup (Required)
+If you're on Windows and encounter the error: `npm.ps1 cannot be loaded because running scripts is disabled on this system`
+
+Run this in PowerShell **as Administrator**:
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+Alternatively, you can use **Command Prompt (cmd)** instead of PowerShell.
+
 ### 1. Clone the repo
 
 ```bash
