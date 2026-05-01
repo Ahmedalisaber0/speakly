@@ -108,6 +108,45 @@ export async function searchNews(
   return response.json();
 }
 
+export interface NewsTranslation {
+  translated_title: string;
+  summary: string;
+}
+
+export async function translateNewsArticle(
+  title: string,
+  body: string,
+  targetLanguage: string
+): Promise<NewsTranslation> {
+  const response = await fetch(`${API_URL}/api/news/translate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title,
+      body,
+      target_language: targetLanguage,
+    }),
+  });
+  if (!response.ok) throw new Error(`News translate error: ${response.status}`);
+  return response.json();
+}
+
+export async function translateNewsArticlesBatch(
+  articles: { title: string; body: string }[],
+  targetLanguage: string
+): Promise<{ translations: NewsTranslation[] }> {
+  const response = await fetch(`${API_URL}/api/news/translate-batch`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      articles,
+      target_language: targetLanguage,
+    }),
+  });
+  if (!response.ok) throw new Error(`News batch translate error: ${response.status}`);
+  return response.json();
+}
+
 export async function speakCloud(text: string, voice: string): Promise<void> {
   const response = await fetch(`${API_URL}/api/tts`, {
     method: "POST",

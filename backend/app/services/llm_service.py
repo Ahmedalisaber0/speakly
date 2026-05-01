@@ -1,12 +1,17 @@
 import json
+import logging
 import re
 
 from openai import AsyncOpenAI
+
+logger = logging.getLogger(__name__)
 
 from app.config import settings
 from app.models import (
     ChatRequest, ChatResponse, ChatNewsArticle,
     TranslateRequest, TranslateResponse, TranslateCorrection,
+    NewsTranslateRequest, NewsTranslateResponse,
+    NewsTranslateBatchRequest, NewsTranslateBatchResponse,
 )
 from app.prompts import build_system_prompt
 from app.services.search_service import search_web, search_news
@@ -59,10 +64,10 @@ def _parse_json_response(text: str) -> dict:
     return json.loads(cleaned)
 
 
-async def _call_llm(messages: list[dict]) -> str:
+async def _call_llm(messages: list[dict], max_tokens: int = 1024) -> str:
     response = await client.chat.completions.create(
         model="openai/gpt-oss-120b",
-        max_tokens=1024,
+        max_tokens=max_tokens,
         messages=messages,
     )
     return response.choices[0].message.content or ""
@@ -134,6 +139,101 @@ async def get_response(request: ChatRequest) -> ChatResponse:
             corrections=[],
             translated_reply="",
             news_articles=[a.model_dump() for a in articles],
+        )
+
+
+async def translate_news_articles(request: NewsTranslateBatchRequest) -> NewsTranslateBatchResponse:
+    """Translate multiple news articles in a single LLM call to stay under TPM limits."""
+    if not request.articles:
+        return NewsTranslateBatchResponse(translations=[])
+
+    article_blocks = []
+    for i, article in enumerate(request.articles):
+        body_excerpt = (article.body or "")[:250]
+        article_blocks.append(
+            f"Article {i}:\nTITLE: {article.title}\nBODY: {body_excerpt}"
+        )
+    user_content = "\n\n".join(article_blocks)
+
+    messages = [
+        {
+            "role": "system",
+            "content": f"""You translate and summarize news articles into {request.target_language}.
+
+You will receive a numbered list of articles. For EACH article, produce:
+1. A natural translation of the TITLE in {request.target_language}.
+2. A short summary (1-3 sentences, max ~50 words) in {request.target_language}, based on the TITLE and BODY.
+
+Respond with ONLY valid JSON in this exact format (no markdown, no code fences):
+{{
+  "translations": [
+    {{"index": 0, "translated_title": "...", "summary": "..."}},
+    {{"index": 1, "translated_title": "...", "summary": "..."}}
+  ]
+}}
+
+Include one entry for every article, in order. Keep the index field matching the article number.""",
+        },
+        {"role": "user", "content": user_content},
+    ]
+
+    # CJK/Arabic outputs eat tokens fast — give the batch enough room.
+    response_text = await _call_llm(messages, max_tokens=3000)
+
+    fallback = [NewsTranslateResponse(translated_title="", summary="") for _ in request.articles]
+
+    try:
+        data = _parse_json_response(response_text)
+        items = data.get("translations", [])
+        result = list(fallback)
+        for item in items:
+            idx = item.get("index")
+            if isinstance(idx, int) and 0 <= idx < len(result):
+                result[idx] = NewsTranslateResponse(
+                    translated_title=(item.get("translated_title") or "").strip(),
+                    summary=(item.get("summary") or "").strip(),
+                )
+        return NewsTranslateBatchResponse(translations=result)
+    except (json.JSONDecodeError, KeyError, TypeError) as e:
+        logger.warning("Failed to parse batch translation JSON: %s", e)
+        return NewsTranslateBatchResponse(translations=fallback)
+
+
+async def translate_news_article(request: NewsTranslateRequest) -> NewsTranslateResponse:
+    body_excerpt = (request.body or "")[:600]
+    messages = [
+        {
+            "role": "system",
+            "content": f"""You translate and summarize news articles into {request.target_language}.
+
+You will receive a news article TITLE and a short BODY/snippet. Your job:
+1. Translate the title into natural {request.target_language}.
+2. Write a short, clear summary (1-3 sentences, max ~60 words) of what the article is about, in {request.target_language}. Base the summary on the title and body provided.
+
+Respond with ONLY valid JSON in this exact format (no markdown, no code fences):
+{{
+  "translated_title": "the title translated into {request.target_language}",
+  "summary": "a concise summary in {request.target_language}"
+}}""",
+        },
+        {
+            "role": "user",
+            "content": f"TITLE: {request.title}\n\nBODY: {body_excerpt}",
+        },
+    ]
+
+    response_text = await _call_llm(messages)
+
+    try:
+        data = _parse_json_response(response_text)
+        return NewsTranslateResponse(
+            translated_title=data.get("translated_title", "").strip(),
+            summary=data.get("summary", "").strip(),
+        )
+    except (json.JSONDecodeError, KeyError, TypeError):
+        return NewsTranslateResponse(
+            translated_title="",
+            summary=response_text.strip(),
         )
 
 

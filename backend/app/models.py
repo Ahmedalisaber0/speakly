@@ -66,3 +66,28 @@ class NewsArticle(BaseModel):
 class NewsResponse(BaseModel):
     articles: list[NewsArticle]
     query: str
+
+
+class NewsTranslateRequest(BaseModel):
+    title: str
+    body: str = ""
+    target_language: str
+
+
+class NewsTranslateResponse(BaseModel):
+    translated_title: str
+    summary: str
+
+
+class NewsArticleInput(BaseModel):
+    title: str
+    body: str = ""
+
+
+class NewsTranslateBatchRequest(BaseModel):
+    articles: list[NewsArticleInput]
+    target_language: str
+
+
+class NewsTranslateBatchResponse(BaseModel):
+    translations: list[NewsTranslateResponse]

@@ -3,8 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
 from app.config import settings
-from app.models import ChatRequest, ChatResponse, TranslateRequest, TranslateResponse, NewsResponse
-from app.services.llm_service import get_response, translate_text
+from app.models import (
+    ChatRequest, ChatResponse, TranslateRequest, TranslateResponse,
+    NewsResponse, NewsTranslateRequest, NewsTranslateResponse,
+    NewsTranslateBatchRequest, NewsTranslateBatchResponse,
+)
+from app.services.llm_service import (
+    get_response, translate_text, translate_news_article, translate_news_articles,
+)
 from app.services.tts_service import get_voices, synthesize_speech
 from app.services.search_service import search_news
 
@@ -43,6 +49,16 @@ async def voices(lang: str = ""):
 async def news(q: str = "latest news", max_results: int = 10):
     articles = await search_news(q, max_results=max_results)
     return NewsResponse(articles=articles, query=q)
+
+
+@app.post("/api/news/translate", response_model=NewsTranslateResponse)
+async def news_translate(request: NewsTranslateRequest):
+    return await translate_news_article(request)
+
+
+@app.post("/api/news/translate-batch", response_model=NewsTranslateBatchResponse)
+async def news_translate_batch(request: NewsTranslateBatchRequest):
+    return await translate_news_articles(request)
 
 
 @app.post("/api/tts")
