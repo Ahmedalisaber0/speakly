@@ -33,6 +33,9 @@ class ChatResponse(BaseModel):
     corrections: list[Correction] = []
     translated_reply: str = ""
     news_articles: list[ChatNewsArticle] = []
+    needs_clarification: bool = False
+    suggested_correction: str = ""
+    correction_language: str = ""
 
 
 class TranslateRequest(BaseModel):

@@ -9,7 +9,7 @@ interface Props {
 }
 
 export default function CloudVoiceSelector({ voices, selectedVoice, onSelect }: Props) {
-  if (voices.length === 0) return null;
+  if (!Array.isArray(voices) || voices.length === 0) return null;
 
   return (
     <select

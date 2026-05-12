@@ -1,19 +1,77 @@
 "use client";
 
-import { useState } from "react";
-import { ChatMessage as ChatMessageType } from "@/types";
+import { ChatMessage as ChatMessageType, Language } from "@/types";
+import { getStrings } from "@/lib/strings";
 import CorrectionCard from "./CorrectionCard";
 
 interface Props {
   message: ChatMessageType;
+  nativeLanguage: Language;
 }
 
-export default function ChatMessage({ message }: Props) {
-  const isUser = message.role === "user";
-  const [showTranslation, setShowTranslation] = useState(false);
+export default function ChatMessage({ message, nativeLanguage }: Props) {
+  // Defensive: a malformed message (or one with surprise field shapes from
+  // an older backend / cached API response) must not crash the entire chat.
+  if (!message) return null;
 
-  const hasTranslation = !isUser && message.translatedReply;
-  const hasNews = !isUser && message.newsArticles && message.newsArticles.length > 0;
+  const isUser = message.role === "user";
+  const strings = getStrings(nativeLanguage);
+  // Coerce to arrays at the top — anything else is treated as empty so the
+  // .length / .map calls below can't blow up.
+  const newsArticles = Array.isArray(message.newsArticles) ? message.newsArticles : [];
+  const corrections = Array.isArray(message.corrections) ? message.corrections : [];
+  const hasNews = !isUser && newsArticles.length > 0;
+
+  const status = message.translationStatus;
+  const translation = message.translatedContent?.trim();
+
+  // The translation row appears identically inside both user and assistant bubbles,
+  // styled with a subtle divider + muted/italic text so it's visually secondary
+  // to the primary message.
+  const renderTranslationRow = () => {
+    const baseRow = isUser
+      ? "mt-2 pt-2 border-t border-white/25 text-sm text-white/75 italic"
+      : "mt-2 pt-2 border-t border-gray-100 text-sm text-gray-500 italic";
+
+    if (status === "pending") {
+      return (
+        <div className={`${baseRow} flex items-center gap-1.5`} aria-live="polite">
+          <span className="inline-flex gap-0.5">
+            <span className="w-1 h-1 rounded-full bg-current animate-bounce" />
+            <span
+              className="w-1 h-1 rounded-full bg-current animate-bounce"
+              style={{ animationDelay: "120ms" }}
+            />
+            <span
+              className="w-1 h-1 rounded-full bg-current animate-bounce"
+              style={{ animationDelay: "240ms" }}
+            />
+          </span>
+        </div>
+      );
+    }
+
+    if (translation) {
+      return (
+        <p className={`${baseRow} whitespace-pre-wrap`} dir="auto">
+          {translation}
+        </p>
+      );
+    }
+
+    if (status === "failed") {
+      return (
+        <p
+          className={`${baseRow} ${isUser ? "text-white/60" : "text-gray-400"}`}
+          dir="auto"
+        >
+          {strings.translationUnavailable}
+        </p>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
@@ -25,23 +83,20 @@ export default function ChatMessage({ message }: Props) {
               : "bg-white border border-gray-200 text-gray-800 rounded-bl-md shadow-sm"
           }`}
         >
-          <p className="whitespace-pre-wrap">{message.content}</p>
+          <p className="whitespace-pre-wrap" dir="auto">
+            {message.content ?? ""}
+          </p>
 
-          {showTranslation && hasTranslation && (
-            <p className="mt-2 pt-2 border-t border-gray-100 text-sm text-gray-500 italic">
-              {message.translatedReply}
-            </p>
-          )}
+          {renderTranslationRow()}
 
-          {!isUser && message.corrections && message.corrections.length > 0 && (
-            <CorrectionCard corrections={message.corrections} />
+          {!isUser && corrections.length > 0 && (
+            <CorrectionCard corrections={corrections} />
           )}
         </div>
 
-        {/* News articles */}
         {hasNews && (
           <div className="mt-2 space-y-2">
-            {message.newsArticles!.map((article, i) => (
+            {newsArticles.map((article, i) => (
               <a
                 key={i}
                 href={article.url}
@@ -90,29 +145,6 @@ export default function ChatMessage({ message }: Props) {
               </a>
             ))}
           </div>
-        )}
-
-        {/* Translate button */}
-        {hasTranslation && (
-          <button
-            onClick={() => setShowTranslation(!showTranslation)}
-            className="mt-1 ml-1 text-xs text-gray-400 hover:text-blue-500 transition-colors flex items-center gap-1"
-          >
-            <svg
-              className="w-3 h-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"
-              />
-            </svg>
-            {showTranslation ? "Hide translation" : "Translate"}
-          </button>
         )}
       </div>
     </div>

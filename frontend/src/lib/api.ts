@@ -2,12 +2,21 @@ import { ChatMessage, Correction, ChatNewsArticle } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-interface ChatApiResponse {
+export interface ChatApiResponse {
   reply: string;
   corrections: Correction[];
   translated_reply: string;
   news_articles: ChatNewsArticle[];
+  needs_clarification: boolean;
+  suggested_correction: string;
+  correction_language: string;
 }
+
+// Cap conversation history sent to the LLM to keep prompts short, prevent
+// Groq's context window from being filled with old turns, and avoid response
+// slowdown on long sessions. The backend still sees the system prompt + this
+// trailing window + the current message.
+const MAX_HISTORY_MESSAGES = 20;
 
 export async function sendMessage(
   message: string,
@@ -15,6 +24,7 @@ export async function sendMessage(
   targetLanguage: string,
   conversationHistory: ChatMessage[]
 ): Promise<ChatApiResponse> {
+  const trimmed = conversationHistory.slice(-MAX_HISTORY_MESSAGES);
   const response = await fetch(`${API_URL}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -22,7 +32,7 @@ export async function sendMessage(
       message,
       native_language: nativeLanguage,
       target_language: targetLanguage,
-      conversation_history: conversationHistory.map((msg) => ({
+      conversation_history: trimmed.map((msg) => ({
         role: msg.role,
         content: msg.content,
       })),
@@ -81,7 +91,10 @@ export interface CloudVoice {
 export async function fetchCloudVoices(lang: string = ""): Promise<CloudVoice[]> {
   const response = await fetch(`${API_URL}/api/voices?lang=${encodeURIComponent(lang)}`);
   if (!response.ok) throw new Error(`Voices error: ${response.status}`);
-  return response.json();
+  const data = await response.json();
+  // The backend always returns an array, but be defensive: returning a
+  // non-array here historically crashed `availableVoices.length` upstream.
+  return Array.isArray(data) ? data : [];
 }
 
 export interface NewsArticle {
@@ -168,7 +181,16 @@ export async function checkGrammar(
 
 export async function transcribeAudio(audio: Blob, languageCode?: string): Promise<string> {
   const form = new FormData();
-  const ext = audio.type.includes("mp4") ? "mp4" : "webm";
+  // Pick a sensible filename extension from the actual MIME so Whisper's
+  // file sniffer doesn't have to guess. Falls back to webm.
+  const mime = audio.type.toLowerCase();
+  const ext = mime.includes("mp4")
+    ? "mp4"
+    : mime.includes("ogg")
+    ? "ogg"
+    : mime.includes("wav")
+    ? "wav"
+    : "webm";
   form.append("audio", audio, `speech.${ext}`);
   if (languageCode) form.append("language", languageCode);
 
@@ -184,6 +206,27 @@ export async function transcribeAudio(audio: Blob, languageCode?: string): Promi
   return (data.text || "").trim();
 }
 
+// Module-scoped — a new speakCloud call replaces whatever is currently playing
+// instead of stacking. stopCloud() lets the UI cut playback short.
+let currentAudio: HTMLAudioElement | null = null;
+let currentObjectUrl: string | null = null;
+
+export function stopCloud(): void {
+  if (currentAudio) {
+    try {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    } catch {
+      // ignore
+    }
+    currentAudio = null;
+  }
+  if (currentObjectUrl) {
+    URL.revokeObjectURL(currentObjectUrl);
+    currentObjectUrl = null;
+  }
+}
+
 export async function speakCloud(text: string, voice: string): Promise<void> {
   const response = await fetch(`${API_URL}/api/tts`, {
     method: "POST",
@@ -193,9 +236,31 @@ export async function speakCloud(text: string, voice: string): Promise<void> {
 
   if (!response.ok) throw new Error(`TTS error: ${response.status}`);
 
+  // Cancel any in-flight clip before starting the new one — otherwise rapid
+  // sends produce overlapping voices in the browser.
+  stopCloud();
+
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);
   const audio = new Audio(url);
-  audio.play();
-  audio.onended = () => URL.revokeObjectURL(url);
+  currentAudio = audio;
+  currentObjectUrl = url;
+
+  return new Promise<void>((resolve) => {
+    const cleanup = () => {
+      if (currentAudio === audio) {
+        currentAudio = null;
+        currentObjectUrl = null;
+      }
+      URL.revokeObjectURL(url);
+      resolve();
+    };
+    audio.onended = cleanup;
+    audio.onerror = cleanup;
+    audio.onpause = () => {
+      // Triggered by stopCloud() — ensure cleanup so the consumer's await unblocks.
+      if (audio.ended === false && audio.currentTime === 0) cleanup();
+    };
+    audio.play().catch(cleanup);
+  });
 }

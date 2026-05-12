@@ -5,7 +5,9 @@ interface Props {
 }
 
 export default function CorrectionCard({ corrections }: Props) {
-  if (corrections.length === 0) return null;
+  // Defensive — even though callers guard, treat non-arrays as empty so a
+  // malformed prop can't crash the bubble.
+  if (!Array.isArray(corrections) || corrections.length === 0) return null;
 
   return (
     <div className="mt-2 space-y-2">

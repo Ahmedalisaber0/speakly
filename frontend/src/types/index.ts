@@ -13,11 +13,18 @@ export interface ChatNewsArticle {
   date: string;
 }
 
+export type TranslationStatus = "pending" | "done" | "failed";
+
 export interface ChatMessage {
+  id: string;
   role: "user" | "assistant";
   content: string;
+  // Translation of `content` into the OTHER language. For user messages this is
+  // native -> target, for assistant messages it's target -> native (provided
+  // by the chat API in `translated_reply`).
+  translatedContent?: string;
+  translationStatus?: TranslationStatus;
   corrections?: Correction[];
-  translatedReply?: string;
   newsArticles?: ChatNewsArticle[];
 }
 

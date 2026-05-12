@@ -100,7 +100,7 @@ export default function LanguageSelector({ onSelect }: Props) {
                 What language do you want to practice?
               </p>
               <div className="grid grid-cols-2 gap-3">
-                {LANGUAGES.filter((lang) => lang !== nativeLang).map((lang) => (
+                {LANGUAGES.map((lang) => (
                   <button
                     key={lang}
                     onClick={() => handleTargetSelect(lang)}

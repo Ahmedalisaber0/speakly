@@ -115,16 +115,48 @@ Be lenient with informal speech and minor punctuation — only flag real mistake
         return GrammarCheckResponse(original=text, corrected=text, corrections=[])
 
 
+"""Per-language Whisper prompt hints. Whisper expects the prompt in the same
+language as the audio — supplying an English prompt for an Arabic recording
+biases the model toward romanized output and hurts accuracy.
+
+Each hint is a short snippet of casual conversational text in that language.
+It nudges Whisper toward informal/dialect vocabulary and away from the
+common noise-induced hallucinations ("Subscribe to my channel", "Thanks for
+watching") that the model otherwise emits on quiet clips.
+"""
+_WHISPER_PROMPTS: dict[str, str] = {
+    "ar": "محادثة ودية بالعربية، كلام يومي عادي. مرحباً، كيف حالك اليوم؟",
+    "en": "A casual everyday conversation. Hello, how are you today?",
+    "es": "Una conversación casual de todos los días. Hola, ¿cómo estás hoy?",
+    "fr": "Une conversation décontractée du quotidien. Bonjour, comment ça va aujourd'hui ?",
+    "de": "Ein lockeres Alltagsgespräch. Hallo, wie geht es dir heute?",
+    "it": "Una conversazione quotidiana informale. Ciao, come stai oggi?",
+    "pt": "Uma conversa casual do dia a dia. Olá, como você está hoje?",
+    "ja": "日常のカジュアルな会話です。こんにちは、今日はどうですか？",
+    "ko": "일상적인 캐주얼한 대화입니다. 안녕하세요, 오늘 어떠세요?",
+    "zh": "日常的随意对话。你好，今天怎么样？",
+}
+_DEFAULT_WHISPER_PROMPT = _WHISPER_PROMPTS["en"]
+
+
 async def transcribe_audio(
     audio_bytes: bytes,
     filename: str = "audio.webm",
     language: str | None = None,
 ) -> str:
     """Transcribe audio using Groq Whisper. Returns plain text."""
+    # Pick a language-matched prompt when we know the audio language.
+    # Auto-detect (no language hint) keeps the safe English default.
+    prompt = _WHISPER_PROMPTS.get(language, _DEFAULT_WHISPER_PROMPT) if language else _DEFAULT_WHISPER_PROMPT
+
     kwargs = {
         "file": (filename, audio_bytes),
         "model": settings.whisper_model,
         "response_format": "text",
+        "prompt": prompt,
+        # Deterministic decoding — temperature 0 gives the most stable
+        # transcripts for the same audio input.
+        "temperature": 0,
     }
     if language:
         kwargs["language"] = language
@@ -214,11 +246,20 @@ async def get_response(request: ChatRequest) -> ChatResponse:
 
     # Step 4: Build response
     if parsed:
+        needs_clar = bool(parsed.get("needs_clarification", False))
+        suggested = (parsed.get("suggested_correction") or "").strip()
+        # Only honor the clarification flag if the model actually proposed a guess —
+        # otherwise the card has nothing to show.
+        if needs_clar and not suggested:
+            needs_clar = False
         return ChatResponse(
             reply=parsed.get("reply", response_text),
             corrections=parsed.get("corrections", []),
             translated_reply=parsed.get("translated_reply", ""),
             news_articles=[a.model_dump() for a in articles],
+            needs_clarification=needs_clar,
+            suggested_correction=suggested,
+            correction_language=(parsed.get("correction_language") or "").strip(),
         )
     else:
         return ChatResponse(
