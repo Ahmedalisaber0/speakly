@@ -12,6 +12,12 @@ export interface UIStrings {
   statusListening: string;
   statusIdle: string;
   stopSpeakingAria: string;
+  newChat: string;
+  noConversationsYet: string;
+  deleteConversation: string;
+  settings: string;
+  logout: string;
+  conversationEmptyState: string;
 }
 
 const STRINGS: Record<Language, UIStrings> = {
@@ -27,6 +33,12 @@ const STRINGS: Record<Language, UIStrings> = {
     statusListening: "Listening… tap mic to stop",
     statusIdle: "Type or tap the mic to speak",
     stopSpeakingAria: "Stop speaking",
+    newChat: "New chat",
+    noConversationsYet: "No conversations yet",
+    deleteConversation: "Delete conversation",
+    settings: "Settings",
+    logout: "Log out",
+    conversationEmptyState: "Say hi to get started.",
   },
   Spanish: {
     clarificationTitle: "¿Quisiste decir esto?",
@@ -40,6 +52,12 @@ const STRINGS: Record<Language, UIStrings> = {
     statusListening: "Escuchando… toca el micro para detener",
     statusIdle: "Escribe o toca el micro para hablar",
     stopSpeakingAria: "Detener voz",
+    newChat: "Nueva conversación",
+    noConversationsYet: "Aún no hay conversaciones",
+    deleteConversation: "Eliminar conversación",
+    settings: "Configuración",
+    logout: "Cerrar sesión",
+    conversationEmptyState: "Saluda para empezar.",
   },
   French: {
     clarificationTitle: "Vouliez-vous dire ceci ?",
@@ -53,6 +71,12 @@ const STRINGS: Record<Language, UIStrings> = {
     statusListening: "Écoute… touchez le micro pour arrêter",
     statusIdle: "Écrivez ou touchez le micro pour parler",
     stopSpeakingAria: "Arrêter la lecture",
+    newChat: "Nouvelle conversation",
+    noConversationsYet: "Aucune conversation pour l'instant",
+    deleteConversation: "Supprimer la conversation",
+    settings: "Paramètres",
+    logout: "Déconnexion",
+    conversationEmptyState: "Dites bonjour pour commencer.",
   },
   German: {
     clarificationTitle: "Meinten Sie das?",
@@ -66,6 +90,12 @@ const STRINGS: Record<Language, UIStrings> = {
     statusListening: "Höre zu… Mikro zum Stoppen tippen",
     statusIdle: "Tippen oder Mikro antippen zum Sprechen",
     stopSpeakingAria: "Stoppen",
+    newChat: "Neuer Chat",
+    noConversationsYet: "Noch keine Konversationen",
+    deleteConversation: "Konversation löschen",
+    settings: "Einstellungen",
+    logout: "Abmelden",
+    conversationEmptyState: "Sag Hallo, um loszulegen.",
   },
   Italian: {
     clarificationTitle: "Intendevi questo?",
@@ -79,6 +109,12 @@ const STRINGS: Record<Language, UIStrings> = {
     statusListening: "In ascolto… tocca il microfono per fermare",
     statusIdle: "Scrivi o tocca il microfono per parlare",
     stopSpeakingAria: "Interrompi la voce",
+    newChat: "Nuova conversazione",
+    noConversationsYet: "Nessuna conversazione",
+    deleteConversation: "Elimina conversazione",
+    settings: "Impostazioni",
+    logout: "Esci",
+    conversationEmptyState: "Saluta per iniziare.",
   },
   Portuguese: {
     clarificationTitle: "Você quis dizer isto?",
@@ -92,6 +128,12 @@ const STRINGS: Record<Language, UIStrings> = {
     statusListening: "Ouvindo… toque o microfone para parar",
     statusIdle: "Digite ou toque o microfone para falar",
     stopSpeakingAria: "Parar de falar",
+    newChat: "Nova conversa",
+    noConversationsYet: "Nenhuma conversa ainda",
+    deleteConversation: "Excluir conversa",
+    settings: "Configurações",
+    logout: "Sair",
+    conversationEmptyState: "Diga olá para começar.",
   },
   Japanese: {
     clarificationTitle: "これでよろしいですか？",
@@ -105,6 +147,12 @@ const STRINGS: Record<Language, UIStrings> = {
     statusListening: "聞いています… マイクをタップして停止",
     statusIdle: "入力するか、マイクをタップして話してください",
     stopSpeakingAria: "再生を停止",
+    newChat: "新しいチャット",
+    noConversationsYet: "まだ会話がありません",
+    deleteConversation: "会話を削除",
+    settings: "設定",
+    logout: "ログアウト",
+    conversationEmptyState: "「こんにちは」で始めましょう。",
   },
   Korean: {
     clarificationTitle: "이렇게 말씀하셨나요?",
@@ -118,6 +166,12 @@ const STRINGS: Record<Language, UIStrings> = {
     statusListening: "듣는 중… 마이크를 눌러 중지",
     statusIdle: "입력하거나 마이크를 눌러 말하세요",
     stopSpeakingAria: "재생 중지",
+    newChat: "새 채팅",
+    noConversationsYet: "아직 대화가 없습니다",
+    deleteConversation: "대화 삭제",
+    settings: "설정",
+    logout: "로그아웃",
+    conversationEmptyState: "인사하며 시작해 보세요.",
   },
   Arabic: {
     clarificationTitle: "هل تقصد هذا؟",
@@ -131,6 +185,12 @@ const STRINGS: Record<Language, UIStrings> = {
     statusListening: "يستمع… اضغط الميكروفون للإيقاف",
     statusIdle: "اكتب أو اضغط الميكروفون للتحدث",
     stopSpeakingAria: "إيقاف الصوت",
+    newChat: "محادثة جديدة",
+    noConversationsYet: "لا توجد محادثات بعد",
+    deleteConversation: "حذف المحادثة",
+    settings: "الإعدادات",
+    logout: "تسجيل الخروج",
+    conversationEmptyState: "ابدأ بإلقاء التحية.",
   },
   Chinese: {
     clarificationTitle: "您是这个意思吗？",
@@ -144,6 +204,12 @@ const STRINGS: Record<Language, UIStrings> = {
     statusListening: "正在聆听… 点击麦克风停止",
     statusIdle: "输入或点击麦克风说话",
     stopSpeakingAria: "停止播放",
+    newChat: "新对话",
+    noConversationsYet: "暂无对话",
+    deleteConversation: "删除对话",
+    settings: "设置",
+    logout: "退出登录",
+    conversationEmptyState: "打个招呼开始吧。",
   },
 };
 

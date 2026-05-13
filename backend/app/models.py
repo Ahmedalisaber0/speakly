@@ -11,6 +11,10 @@ class ChatRequest(BaseModel):
     native_language: str
     target_language: str
     conversation_history: list[MessageItem] = []
+    # Set by an authed client to continue an existing conversation. None means
+    # "start a new one" — the server will create a Conversation row and return
+    # its id in the response so the client can keep using it.
+    conversation_id: int | None = None
 
 
 class Correction(BaseModel):
@@ -36,6 +40,9 @@ class ChatResponse(BaseModel):
     needs_clarification: bool = False
     suggested_correction: str = ""
     correction_language: str = ""
+    # Echoed back so the client can latch onto the right conversation when it
+    # was newly created (request had conversation_id=None).
+    conversation_id: int | None = None
 
 
 class TranslateRequest(BaseModel):

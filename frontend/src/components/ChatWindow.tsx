@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { ChatMessage as ChatMessageType, Language } from "@/types";
 import { CloudVoice } from "@/lib/api";
 import { PendingClarification } from "@/hooks/useChat";
@@ -26,7 +25,6 @@ interface Props {
   onVoiceSelect: (voice: CloudVoice) => void;
   onMicToggle: () => void;
   onStopSpeaking: () => void;
-  onChangeLanguage: () => void;
   onSendText: (text: string) => void;
   pendingClarification: PendingClarification | null;
   onAcceptClarification: () => void;
@@ -35,6 +33,11 @@ interface Props {
   isPlayingClarification: boolean;
   lockToNative: boolean;
   onToggleLockToNative: () => void;
+  // Optional content slotted into the panel header (e.g. ProfileBadge or
+  // a conversation title). When omitted, no header is rendered.
+  headerLeft?: React.ReactNode;
+  headerRight?: React.ReactNode;
+  emptyStateText?: string;
 }
 
 function formatDuration(seconds: number): string {
@@ -59,7 +62,6 @@ export default function ChatWindow({
   onVoiceSelect,
   onMicToggle,
   onStopSpeaking,
-  onChangeLanguage,
   onSendText,
   pendingClarification,
   onAcceptClarification,
@@ -68,6 +70,9 @@ export default function ChatWindow({
   isPlayingClarification,
   lockToNative,
   onToggleLockToNative,
+  headerLeft,
+  headerRight,
+  emptyStateText,
 }: Props) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [textInput, setTextInput] = useState("");
@@ -105,45 +110,22 @@ export default function ChatWindow({
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="border-b border-gray-200 bg-white">
-        <div className="flex items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-semibold text-gray-800">Speakly</h1>
-          <div className="flex gap-4 text-sm">
-            <Link href="/" className="text-blue-600 font-medium">
-              Practice
-            </Link>
-            <Link
-              href="/translate"
-              className="text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              Translate
-            </Link>
-            <Link
-              href="/news"
-              className="text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              News
-            </Link>
+    <div className="flex flex-col h-full w-full">
+      {(headerLeft || headerRight) && (
+        <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-card)] px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            {headerLeft}
           </div>
+          <div className="flex items-center gap-3">{headerRight}</div>
         </div>
-        <div className="flex items-center justify-between px-4 pb-2">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">{nativeLanguage}</span>
-            <span className="text-gray-400">→</span>
-            <span className="text-sm font-medium text-blue-600">{targetLanguage}</span>
-            <button
-              onClick={onChangeLanguage}
-              className="text-xs text-gray-400 hover:text-gray-600 underline"
-            >
-              change
-            </button>
-          </div>
-        </div>
+      )}
+      <div className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border-b border-[var(--border-subtle)] text-xs">
+        <span className="text-[var(--text-muted)]">{nativeLanguage}</span>
+        <span className="text-[var(--text-muted)]">→</span>
+        <span className="font-medium text-[var(--accent)]">{targetLanguage}</span>
         {safeVoices.length > 0 && (
-          <div className="flex items-center gap-2 px-4 pb-2">
-            <span className="text-xs text-gray-400">Voice:</span>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-[var(--text-muted)]">Voice:</span>
             <CloudVoiceSelector
               voices={safeVoices}
               selectedVoice={selectedVoice}
@@ -154,12 +136,14 @@ export default function ChatWindow({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gray-50">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-[var(--bg-app)]">
         {safeMessages.length === 0 && (
-          <div className="text-center text-gray-400 mt-20">
-            <p className="text-lg">Start practicing {targetLanguage}!</p>
-            <p className="text-sm mt-1">
-              Type a message or tap the microphone to speak.
+          <div className="text-center text-[var(--text-muted)] mt-20">
+            <p className="text-lg" dir="auto">
+              {emptyStateText ?? `Start practicing ${targetLanguage}!`}
+            </p>
+            <p className="text-sm mt-1" dir="auto">
+              {strings.statusIdle}
             </p>
           </div>
         )}
@@ -169,7 +153,7 @@ export default function ChatWindow({
         ))}
 
         {error && (
-          <div className="text-center text-red-500 text-sm bg-red-50 rounded-lg p-3">
+          <div className="text-center text-[var(--danger)] text-sm bg-red-500/10 rounded-lg p-3">
             {error}
           </div>
         )}
@@ -178,7 +162,7 @@ export default function ChatWindow({
       </div>
 
       {/* Input area */}
-      <div className="border-t border-gray-200 bg-white px-4 py-3 relative">
+      <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-card)] px-4 py-3 relative">
         {pendingClarification && (
           <div className="absolute left-4 right-4 bottom-full mb-2 z-10">
             <ClarificationCard
@@ -193,7 +177,7 @@ export default function ChatWindow({
         )}
 
         {micError && (
-          <p className="text-sm text-red-500 text-center mb-2" dir="auto">
+          <p className="text-sm text-[var(--danger)] text-center mb-2" dir="auto">
             {micError}
           </p>
         )}
@@ -206,14 +190,14 @@ export default function ChatWindow({
             onKeyDown={handleKeyDown}
             placeholder={`Type in ${nativeLanguage}...`}
             disabled={isLoading || isListening}
-            className="flex-1 rounded-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-blue-400 disabled:bg-gray-100"
+            className="flex-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-card)] text-app px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--accent)] disabled:bg-[var(--bg-muted)]"
           />
 
           {/* Send button */}
           <button
             onClick={handleSendText}
             disabled={!textInput.trim() || isLoading}
-            className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all"
+            className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
           >
             <svg
               className="w-5 h-5 text-white"
@@ -297,7 +281,7 @@ export default function ChatWindow({
         </div>
 
         <div className="flex items-center justify-between mt-2 gap-2">
-          <p className="text-xs text-gray-400 flex-1 text-center" dir="auto">
+          <p className="text-xs text-[var(--text-muted)] flex-1 text-center" dir="auto">
             {statusText}
           </p>
           <button

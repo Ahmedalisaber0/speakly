@@ -138,237 +138,225 @@ export default function NewsPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* Header */}
-      <div className="border-b border-gray-200 bg-white">
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-semibold text-gray-800">Speakly</h1>
-          <div className="flex gap-4 text-sm">
-            <Link
-              href="/"
-              className="text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              Practice
+    <div className="h-screen bg-[var(--bg-primary)] flex flex-col">
+      {/* Modern Header with Backdrop Blur */}
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-[var(--border-primary)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-azure)] bg-clip-text text-transparent">
+              Speakly
             </Link>
-            <Link
-              href="/translate"
-              className="text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              Translate
-            </Link>
-            <Link href="/news" className="text-blue-600 font-medium">
-              News
-            </Link>
+
+            {/* Navigation Links */}
+            <nav className="hidden md:flex items-center gap-8">
+              <Link href="/" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                Practice
+              </Link>
+              <Link href="/translate" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                Translate
+              </Link>
+              <Link href="/news" className="font-semibold text-[var(--color-primary)] border-b-2 border-[var(--color-primary)]">
+                News
+              </Link>
+              <Link href="/settings" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                Settings
+              </Link>
+            </nav>
+
+            {/* Mobile Menu Button */}
+            <button className="md:hidden p-2 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors">
+              <span className="text-2xl">☰</span>
+            </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Body: sidebar (language picker) + main (search + results) */}
-      <div className="flex-1 flex flex-col md:flex-row max-w-6xl w-full mx-auto overflow-hidden">
-        <NewsLanguagePicker
-          value={targetLanguage}
-          onChange={handleLanguageChange}
-          voices={voices}
-          selectedVoice={selectedVoice}
-          onVoiceChange={setSelectedVoice}
-        />
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* Sidebar - Language & Voice Selector */}
+        <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-[var(--border-primary)] bg-[var(--bg-secondary)] overflow-y-auto">
+          <div className="p-6">
+            <NewsLanguagePicker
+              value={targetLanguage}
+              onChange={handleLanguageChange}
+              voices={voices}
+              selectedVoice={selectedVoice}
+              onVoiceChange={setSelectedVoice}
+            />
+          </div>
+        </div>
 
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Search bar */}
-          <div className="px-4 py-4 bg-white border-b border-gray-100">
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Search news... (e.g. technology, sports, AI)"
-                disabled={isLoading}
-                className="flex-1 rounded-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-blue-400 disabled:bg-gray-100"
-              />
-              <button
-                onClick={handleSearch}
-                disabled={!query.trim() || isLoading}
-                className="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium disabled:bg-gray-300 disabled:cursor-not-allowed transition-all"
-              >
-                {isLoading ? "Searching..." : "Search"}
-              </button>
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {/* Search Section */}
+          <div className="px-6 py-6 bg-[var(--bg-primary)] border-b border-[var(--border-primary)]">
+            <div className="max-w-2xl mx-auto">
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Search news articles..."
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-3 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition-all"
+                />
+                <button
+                  onClick={handleSearch}
+                  disabled={!query.trim() || isLoading}
+                  className="px-6 py-3 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="animate-spin-slow">⚙️</span>
+                      <span className="hidden sm:inline">Searching...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🔍</span>
+                      <span className="hidden sm:inline">Search</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Results */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gray-50">
+          {/* Articles Grid */}
+          <div className="flex-1 overflow-y-auto px-6 py-6">
+            {/* Error State */}
             {error && (
-              <div className="text-center text-red-500 text-sm bg-red-50 rounded-lg p-3">
-                {error}
+              <div className="max-w-2xl mx-auto mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 animate-slide-down">
+                <p className="text-red-800 dark:text-red-200 font-semibold">Error</p>
+                <p className="text-red-700 dark:text-red-300 text-sm mt-1">{error}</p>
               </div>
             )}
 
+            {/* Empty State */}
             {!searched && !isLoading && (
-              <div className="text-center text-gray-400 mt-20">
-                <svg
-                  className="w-12 h-12 mx-auto mb-3 text-gray-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
-                  />
-                </svg>
-                <p className="text-lg">Search the latest news</p>
-                <p className="text-sm mt-1">
-                  Enter a topic to find recent news articles
-                </p>
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-4xl mb-4">📰</p>
+                  <p className="h2 text-[var(--text-primary)]">Search for news</p>
+                  <p className="text-[var(--text-secondary)] mt-2">Enter keywords to find translated news articles</p>
+                </div>
               </div>
             )}
 
+            {/* No Results */}
             {searched && !isLoading && articles.length === 0 && !error && (
-              <div className="text-center text-gray-400 mt-20">
-                <p className="text-lg">No results found</p>
-                <p className="text-sm mt-1">Try a different search term</p>
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-4xl mb-4">🔍</p>
+                  <p className="h2 text-[var(--text-primary)]">No articles found</p>
+                  <p className="text-[var(--text-secondary)] mt-2">Try different search terms</p>
+                </div>
               </div>
             )}
 
-            {articles.map((article, i) => {
-              const t = translations[i];
-              return (
-                <div
-                  key={i}
-                  className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all overflow-hidden"
-                >
-                  <a
-                    href={article.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block"
-                  >
-                    <div className="flex">
-                      {article.image && (
-                        <div className="w-32 h-28 flex-shrink-0">
-                          <img
-                            src={article.image}
-                            alt=""
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = "none";
-                            }}
-                          />
-                        </div>
-                      )}
-                      <div className="flex-1 p-4">
-                        <h3 className="font-medium text-gray-800 text-sm leading-snug line-clamp-2">
-                          {article.title}
-                        </h3>
-                        {article.body && (
-                          <p className="text-xs text-gray-500 mt-1.5 line-clamp-2">
-                            {article.body}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
-                          {article.source && <span>{article.source}</span>}
-                          {article.source && article.date && (
-                            <span className="text-gray-300">|</span>
-                          )}
-                          {article.date && (
-                            <span>
-                              {new Date(article.date).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </a>
-
-                  {targetLanguage && t && (() => {
-                    const hasContent =
-                      t.status === "done" && (t.translatedTitle || t.summary);
-                    const isEmptyDone =
-                      t.status === "done" && !t.translatedTitle && !t.summary;
-
-                    return (
-                      <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 space-y-2">
-                        {t.status === "loading" && (
-                          <div className="space-y-2 animate-pulse">
-                            <div className="h-3 bg-gray-200 rounded w-2/3" />
-                            <div className="h-2.5 bg-gray-200 rounded w-full" />
-                            <div className="h-2.5 bg-gray-200 rounded w-5/6" />
+            {/* Articles Grid */}
+            {articles.length > 0 && (
+              <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+                {articles.map((article, i) => {
+                  const t = translations[i];
+                  return (
+                    <a
+                      key={i}
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group block rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)] overflow-hidden hover:shadow-lg hover:border-[var(--color-primary)] transition-all duration-200"
+                    >
+                      <div className="flex flex-col sm:flex-row gap-4 p-4">
+                        {/* Article Image */}
+                        {article.image && (
+                          <div className="w-full sm:w-48 h-32 flex-shrink-0">
+                            <img
+                              src={article.image}
+                              alt={article.title}
+                              className="w-full h-full object-cover rounded-lg"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = "none";
+                              }}
+                            />
                           </div>
                         )}
 
-                        {hasContent && (
-                          <>
-                            {t.translatedTitle && (
-                              <p
-                                className="text-sm font-medium text-gray-800"
-                                dir="auto"
-                              >
-                                {t.translatedTitle}
-                              </p>
-                            )}
-                            {t.summary && (
-                              <p className="text-xs text-gray-600 leading-relaxed" dir="auto">
-                                {t.summary}
-                              </p>
-                            )}
-                            {selectedVoice && (
-                              <button
-                                onClick={() =>
-                                  handleListen(
-                                    i,
-                                    [t.translatedTitle, t.summary]
-                                      .filter(Boolean)
-                                      .join(". ")
-                                  )
-                                }
-                                disabled={playingIndex === i}
-                                className="inline-flex items-center gap-1.5 mt-1 px-2.5 py-1 rounded-full bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-xs text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                              >
-                                {playingIndex === i ? (
-                                  <>
-                                    <svg className="w-3.5 h-3.5 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
-                                      <path d="M12 4v16M8 8v8M16 8v8M4 11v2M20 11v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none"/>
-                                    </svg>
-                                    Playing...
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                                      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 00-2.5-4.03v8.05A4.5 4.5 0 0016.5 12zM14 3.23v2.06a7.001 7.001 0 010 13.42v2.06A9.001 9.001 0 0023 12 9 9 0 0014 3.23z"/>
-                                    </svg>
-                                    Listen
-                                  </>
-                                )}
-                              </button>
-                            )}
-                          </>
-                        )}
+                        {/* Article Content */}
+                        <div className="flex-1 min-w-0 flex flex-col">
+                          {/* Original Title */}
+                          <h3 className="text-lg font-semibold text-[var(--text-primary)] group-hover:text-[var(--color-primary)] transition-colors line-clamp-2">
+                            {article.title}
+                          </h3>
 
-                        {isEmptyDone && (
-                          <p className="text-xs text-amber-600">
-                            Translation unavailable for this article. Try a different
-                            target language or search again.
+                          {/* Source & Date */}
+                          <p className="text-sm text-[var(--text-secondary)] mt-2 line-clamp-1">
+                            {article.source}
                           </p>
-                        )}
 
-                        {t.status === "error" && (
-                          <p className="text-xs text-red-500">
-                            Couldn&apos;t generate translation: {t.error}
-                          </p>
-                        )}
+                          {/* Translated Title */}
+                          {targetLanguage && (
+                            <div className="mt-3 pt-3 border-t border-[var(--border-primary)]">
+                              {t?.status === "loading" && (
+                                <div className="space-y-2">
+                                  <div className="h-3 bg-[var(--bg-muted)] rounded animate-pulse w-3/4"></div>
+                                  <div className="h-3 bg-[var(--bg-muted)] rounded animate-pulse w-1/2"></div>
+                                </div>
+                              )}
+                              {t?.status === "done" && t?.translatedTitle && (
+                                <div>
+                                  <p className="text-xs font-semibold text-[var(--color-primary)] uppercase tracking-wide mb-1">Translated</p>
+                                  <p className="text-sm text-[var(--text-primary)] line-clamp-2">
+                                    {t.translatedTitle}
+                                  </p>
+                                  {t.summary && (
+                                    <p className="text-sm text-[var(--text-secondary)] mt-2 line-clamp-2">
+                                      {t.summary}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                              {t?.status === "error" && (
+                                <p className="text-sm text-red-600 dark:text-red-400">
+                                  Translation failed
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    );
-                  })()}
-                </div>
-              );
-            })}
+
+                      {/* Listen Button */}
+                      {selectedVoice && t?.status === "done" && (t?.translatedTitle || t?.summary) && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleListen(
+                              i,
+                              [t.translatedTitle, t.summary].filter(Boolean).join(". ")
+                            );
+                          }}
+                          className="w-full px-4 py-3 border-t border-[var(--border-primary)] text-[var(--color-primary)] hover:bg-[var(--bg-muted)] font-semibold transition-colors flex items-center justify-center gap-2"
+                        >
+                          {playingIndex === i ? (
+                            <>
+                              <span className="animate-spin-slow">🔊</span>
+                              <span>Playing...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>🔊</span>
+                              <span>Listen to Translation</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </a>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

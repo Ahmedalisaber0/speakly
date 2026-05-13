@@ -1,7 +1,340 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* Primary Colors - Teal */
+  --color-primary: #1D9E75;
+  --color-primary-dark: #158B63;
+  --color-primary-light: #35B986;
+
+  /* Secondary Colors - Azure Blue */
+  --color-azure: #378ADD;
+  --color-azure-dark: #2970C2;
+  --color-azure-light: #5A9FE8;
+
+  /* Tertiary Colors - Purple */
+  --color-purple: #7F77DD;
+  --color-purple-dark: #6B63C8;
+  --color-purple-light: #9B92F5;
+
+  /* Accent - Coral */
+  --color-accent: #D85A30;
+  --color-accent-dark: #C54A1F;
+  --color-accent-light: #E87A51;
+
+  /* Success */
+  --color-success: #059669;
+
+  /* Light Mode - Backgrounds */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F9F8F6;
+  --bg-muted: #F5F4F1;
+  --bg-elevated: #FFFFFF;
+
+  /* Light Mode - Text */
+  --text-primary: #2C2C2A;
+  --text-secondary: #5F5E5A;
+  --text-tertiary: #8B8985;
+  --text-inverse: #FFFFFF;
+
+  /* Light Mode - Borders */
+  --border-primary: #E5E3DF;
+  --border-secondary: #D5D3CF;
+
+  /* Legacy compatibility */
+  --bg-app: #FFFFFF;
+  --bg-card: #F9F8F6;
+  --border-subtle: #E5E3DF;
+  --text-app: #2C2C2A;
+  --text-muted: #5F5E5A;
+  --accent: #1D9E75;
+  --accent-hover: #158B63;
+  --danger: #D85A30;
+}
+
+.dark {
+  /* Dark Mode - Backgrounds */
+  --bg-primary: #0F0F0F;
+  --bg-secondary: #1A1A18;
+  --bg-muted: #262623;
+  --bg-elevated: #242422;
+
+  /* Dark Mode - Text */
+  --text-primary: #F5F4F1;
+  --text-secondary: #D5D3CF;
+  --text-tertiary: #A3A09C;
+  --text-inverse: #0F0F0F;
+
+  /* Dark Mode - Borders */
+  --border-primary: #3A3A37;
+  --border-secondary: #4A4A47;
+
+  /* Legacy compatibility */
+  --bg-app: #0F0F0F;
+  --bg-card: #1A1A18;
+  --border-subtle: #3A3A37;
+  --text-app: #F5F4F1;
+  --text-muted: #D5D3CF;
+  --accent: #1D9E75;
+  --accent-hover: #35B986;
+  --danger: #E87A51;
+}
+
+@theme inline {
+  --color-primary: var(--color-primary);
+  --color-primary-dark: var(--color-primary-dark);
+  --color-primary-light: var(--color-primary-light);
+  --color-azure: var(--color-azure);
+  --color-purple: var(--color-purple);
+  --color-accent: var(--color-accent);
+  --color-success: var(--color-success);
+  
+  --bg-primary: var(--bg-primary);
+  --bg-secondary: var(--bg-secondary);
+  --bg-muted: var(--bg-muted);
+  --bg-elevated: var(--bg-elevated);
+  
+  --text-primary: var(--text-primary);
+  --text-secondary: var(--text-secondary);
+  --text-tertiary: var(--text-tertiary);
+  --text-inverse: var(--text-inverse);
+  
+  --border-primary: var(--border-primary);
+  --border-secondary: var(--border-secondary);
+}
+
+html,
 body {
-  background: #f9fafb;
-  color: #111827;
-  font-family: Arial, Helvetica, sans-serif;
+  height: 100%;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography Utilities */
+.h1 {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.h2 {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.h3 {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.body-md {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.body-sm {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.caption {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Animation Utilities */
+.animate-fade-in {
+  animation: fadeIn 300ms ease-out both;
+}
+
+.animate-slide-up {
+  animation: slideUp 200ms ease-out both;
+}
+
+.animate-slide-down {
+  animation: slideDown 200ms ease-out both;
+}
+
+.animate-slide-left {
+  animation: slideLeft 200ms ease-out both;
+}
+
+.animate-slide-right {
+  animation: slideRight 200ms ease-out both;
+}
+
+.animate-spin-slow {
+  animation: spin 1.5s linear infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-bounce-slow {
+  animation: bounce 1s ease-in-out infinite;
+}
+
+/* Smooth Transitions */
+.transition-smooth {
+  transition: all 200ms ease-in-out;
+}
+
+.transition-fast {
+  transition: all 150ms ease-in-out;
+}
+
+.transition-slow {
+  transition: all 300ms ease-in-out;
+}
+
+/* Focus Styles */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* Selection Styles */
+::selection {
+  background-color: var(--color-primary);
+  color: var(--text-inverse);
+}
+
+::-moz-selection {
+  background-color: var(--color-primary);
+  color: var(--text-inverse);
 }

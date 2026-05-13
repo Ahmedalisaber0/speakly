@@ -1,18 +1,37 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChatMessage, Language } from "@/types";
 import {
   sendMessage as apiSendMessage,
   translateText,
   ChatApiResponse,
 } from "@/lib/api";
+import { DbMessage } from "@/lib/conversations-api";
 
 export interface PendingClarification {
   suggested: string;
   // Bot's reply was generated, but we hide it until the user confirms or dismisses.
   // If they dismiss, we flush this to the chat.
   pendingReply: ChatApiResponse;
+}
+
+export interface UseChatOptions {
+  nativeLanguage: Language | null;
+  targetLanguage: Language | null;
+  // Conversation ID to attach this chat to. null means the next message
+  // creates a new conversation; the server returns its id, which the parent
+  // should latch onto via onConversationCreated.
+  conversationId: number | null;
+  // Initial messages to seed when conversationId changes (loaded by useConversations).
+  seedMessages: DbMessage[];
+  // Called once when the server creates a fresh conversation in response to a
+  // chat call with conversationId=null. Parent should set the new id and
+  // refresh the sidebar.
+  onConversationCreated?: (conversationId: number, firstUserMessage: string) => void;
+  // Called after every successful (non-clarified) round-trip so the sidebar
+  // can resort and update the preview.
+  onTurnPersisted?: (conversationId: number, lastUserMessage: string) => void;
 }
 
 function generateId(): string {
@@ -22,23 +41,47 @@ function generateId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-export function useChat() {
+function dbMessageToChat(m: DbMessage): ChatMessage {
+  return {
+    id: `db-${m.message_id}`,
+    role: m.role,
+    content: m.content,
+    translatedContent: m.translated_content || undefined,
+    translationStatus: m.translated_content ? "done" : undefined,
+  };
+}
+
+export function useChat({
+  nativeLanguage,
+  targetLanguage,
+  conversationId,
+  seedMessages,
+  onConversationCreated,
+  onTurnPersisted,
+}: UseChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [nativeLanguage, setNativeLanguage] = useState<Language | null>(null);
-  const [targetLanguage, setTargetLanguage] = useState<Language | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingClarification, setPendingClarification] =
     useState<PendingClarification | null>(null);
 
-  const setLanguages = useCallback((native: Language, target: Language) => {
-    setNativeLanguage(native);
-    setTargetLanguage(target);
-  }, []);
+  // Track which conversation's messages we've seeded so we don't clobber
+  // local state with stale seedMessages on every render.
+  const seededForRef = useRef<number | null | "none">("none");
+
+  useEffect(() => {
+    // When the conversation switches, replace local messages with the seed
+    // (DB messages of the new conversation) and clear stale clarifications.
+    const key = conversationId ?? null;
+    if (seededForRef.current === key) return;
+    seededForRef.current = key;
+    setMessages(seedMessages.map(dbMessageToChat));
+    setPendingClarification(null);
+    setError(null);
+  }, [conversationId, seedMessages]);
 
   const translateUserMessage = useCallback(
     (id: string, text: string, native: Language, target: Language) => {
-      // Same-language: translation is the original text — no API round-trip needed.
       if (native === target) {
         setMessages((prev) =>
           prev.map((m) =>
@@ -87,11 +130,6 @@ export function useChat() {
     []
   );
 
-  // Core round-trip: appends `text` as a user message on top of the supplied
-  // `history`, fires off the parallel translation, calls the chat API, and
-  // either appends the bot reply or surfaces a clarification card.
-  // Taking `history` as an explicit argument lets `acceptClarification` swap
-  // out the trailing user message without depending on stale closure state.
   const runChat = useCallback(
     async (text: string, history: ChatMessage[]): Promise<string | null> => {
       if (!nativeLanguage || !targetLanguage) return null;
@@ -116,8 +154,19 @@ export function useChat() {
           text,
           nativeLanguage,
           targetLanguage,
-          newHistory
+          newHistory,
+          conversationId
         );
+
+        // Server may have created a new conversation for us — surface its id
+        // so the parent can latch onto it for subsequent turns.
+        const echoedId = response.conversation_id;
+        if (echoedId != null && conversationId == null && onConversationCreated) {
+          // Mark the seed-ref as "we own this id now" so the upcoming
+          // seedMessages flip from useConversations doesn't wipe local state.
+          seededForRef.current = echoedId;
+          onConversationCreated(echoedId, text);
+        }
 
         if (response.needs_clarification && response.suggested_correction) {
           setPendingClarification({
@@ -129,6 +178,11 @@ export function useChat() {
 
         const assistantMessage = buildAssistantMessage(response);
         setMessages((prev) => [...prev, assistantMessage]);
+
+        if (echoedId != null && onTurnPersisted) {
+          onTurnPersisted(echoedId, text);
+        }
+
         return response.reply;
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
@@ -137,7 +191,15 @@ export function useChat() {
         setIsLoading(false);
       }
     },
-    [nativeLanguage, targetLanguage, translateUserMessage, buildAssistantMessage]
+    [
+      nativeLanguage,
+      targetLanguage,
+      conversationId,
+      translateUserMessage,
+      buildAssistantMessage,
+      onConversationCreated,
+      onTurnPersisted,
+    ]
   );
 
   const sendMessage = useCallback(
@@ -148,8 +210,6 @@ export function useChat() {
     [messages, runChat]
   );
 
-  // Accept the suggested correction: drop the trailing (confusing) user message
-  // and re-run the chat with the corrected text in its place.
   const acceptClarification = useCallback(async (): Promise<string | null> => {
     const pending = pendingClarification;
     if (!pending) return null;
@@ -160,8 +220,6 @@ export function useChat() {
     return runChat(pending.suggested, baseHistory);
   }, [pendingClarification, messages, runChat]);
 
-  // Dismiss: keep the original bot reply by flushing it into the chat.
-  // Returns the reply text so callers can TTS it.
   const dismissClarification = useCallback((): string | null => {
     const pending = pendingClarification;
     if (!pending) return null;
@@ -171,32 +229,13 @@ export function useChat() {
     return pending.pendingReply.reply || null;
   }, [pendingClarification, buildAssistantMessage]);
 
-  const clearChat = useCallback(() => {
-    setMessages([]);
-    setError(null);
-    setPendingClarification(null);
-  }, []);
-
-  const resetLanguages = useCallback(() => {
-    setNativeLanguage(null);
-    setTargetLanguage(null);
-    setMessages([]);
-    setError(null);
-    setPendingClarification(null);
-  }, []);
-
   return {
     messages,
     isLoading,
-    nativeLanguage,
-    targetLanguage,
     error,
     pendingClarification,
-    setLanguages,
     sendMessage,
     acceptClarification,
     dismissClarification,
-    clearChat,
-    resetLanguages,
   };
 }

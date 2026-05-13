@@ -1,6 +1,10 @@
 import { ChatMessage, Correction, ChatNewsArticle } from "@/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+// Shared default for every authed fetch — sends the speakly_session cookie
+// and lets the backend's CORS allow_credentials work.
+export const FETCH_DEFAULTS: RequestInit = { credentials: "include" };
 
 export interface ChatApiResponse {
   reply: string;
@@ -10,6 +14,7 @@ export interface ChatApiResponse {
   needs_clarification: boolean;
   suggested_correction: string;
   correction_language: string;
+  conversation_id: number | null;
 }
 
 // Cap conversation history sent to the LLM to keep prompts short, prevent
@@ -22,16 +27,19 @@ export async function sendMessage(
   message: string,
   nativeLanguage: string,
   targetLanguage: string,
-  conversationHistory: ChatMessage[]
+  conversationHistory: ChatMessage[],
+  conversationId: number | null = null
 ): Promise<ChatApiResponse> {
   const trimmed = conversationHistory.slice(-MAX_HISTORY_MESSAGES);
   const response = await fetch(`${API_URL}/api/chat`, {
+    ...FETCH_DEFAULTS,
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       message,
       native_language: nativeLanguage,
       target_language: targetLanguage,
+      conversation_id: conversationId,
       conversation_history: trimmed.map((msg) => ({
         role: msg.role,
         content: msg.content,
@@ -179,7 +187,11 @@ export async function checkGrammar(
   return response.json();
 }
 
-export async function transcribeAudio(audio: Blob, languageCode?: string): Promise<string> {
+export async function transcribeAudio(
+  audio: Blob,
+  languageCode?: string,
+  dialect?: string
+): Promise<string> {
   const form = new FormData();
   // Pick a sensible filename extension from the actual MIME so Whisper's
   // file sniffer doesn't have to guess. Falls back to webm.
@@ -193,8 +205,10 @@ export async function transcribeAudio(audio: Blob, languageCode?: string): Promi
     : "webm";
   form.append("audio", audio, `speech.${ext}`);
   if (languageCode) form.append("language", languageCode);
+  if (dialect) form.append("dialect", dialect);
 
   const response = await fetch(`${API_URL}/api/transcribe`, {
+    ...FETCH_DEFAULTS,
     method: "POST",
     body: form,
   });

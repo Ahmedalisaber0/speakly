@@ -138,16 +138,50 @@ _WHISPER_PROMPTS: dict[str, str] = {
 }
 _DEFAULT_WHISPER_PROMPT = _WHISPER_PROMPTS["en"]
 
+# Dialect-specific overrides — match against case-insensitive substring of the
+# user's stored `dialect` field. Strongly improves Whisper accuracy on
+# colloquial speech because the prompt steers the decoder toward the right
+# vocabulary register.
+_DIALECT_PROMPTS: dict[str, str] = {
+    "egyptian": "محادثة باللهجة المصرية، كلام يومي عادي. إيه أخبارك؟ عامل إيه النهاردة؟",
+    "levantine": "محادثة باللهجة الشامية، كلام يومي عادي. شو أخبارك؟ كيفك اليوم؟",
+    "gulf": "محادثة باللهجة الخليجية. شلونك اليوم؟ شخبارك؟",
+    "khaleeji": "محادثة باللهجة الخليجية. شلونك اليوم؟ شخبارك؟",
+    "maghrebi": "محادثة باللهجة المغربية. كيداير؟ لاباس عليك؟",
+    "moroccan": "محادثة باللهجة المغربية. كيداير؟ لاباس عليك؟",
+    "iraqi": "محادثة باللهجة العراقية. شلونك اليوم؟ شكو ماكو؟",
+    "mexican": "Una plática casual en español, ¿qué onda? ¿Cómo te va hoy?",
+    "argentinian": "Una charla casual en español, ¿qué hacés? ¿Cómo andás hoy?",
+    "castilian": "Una conversación casual en español, ¿qué tal? ¿Cómo estás hoy?",
+    "brazilian": "Uma conversa casual em português, e aí, beleza? Como você está hoje?",
+    "european portuguese": "Uma conversa casual em português, tudo bem? Como estás hoje?",
+    "quebec": "Une conversation décontractée en français, comment ça va aujourd'hui ?",
+    "british": "A casual everyday conversation. Alright? How are you today?",
+    "american": "A casual everyday conversation. Hey, how's it going today?",
+    "australian": "A casual everyday conversation. G'day, how are you today?",
+}
+
+
+def _whisper_prompt_for(language: str | None, dialect: str | None) -> str:
+    """Pick the most specific Whisper prompt available."""
+    if dialect:
+        d = dialect.lower()
+        for key, hint in _DIALECT_PROMPTS.items():
+            if key in d:
+                return hint
+    if language:
+        return _WHISPER_PROMPTS.get(language, _DEFAULT_WHISPER_PROMPT)
+    return _DEFAULT_WHISPER_PROMPT
+
 
 async def transcribe_audio(
     audio_bytes: bytes,
     filename: str = "audio.webm",
     language: str | None = None,
+    dialect: str | None = None,
 ) -> str:
     """Transcribe audio using Groq Whisper. Returns plain text."""
-    # Pick a language-matched prompt when we know the audio language.
-    # Auto-detect (no language hint) keeps the safe English default.
-    prompt = _WHISPER_PROMPTS.get(language, _DEFAULT_WHISPER_PROMPT) if language else _DEFAULT_WHISPER_PROMPT
+    prompt = _whisper_prompt_for(language, dialect)
 
     kwargs = {
         "file": (filename, audio_bytes),
@@ -192,10 +226,15 @@ async def _call_llm(
     return response.choices[0].message.content or ""
 
 
-async def get_response(request: ChatRequest) -> ChatResponse:
+async def get_response(request: ChatRequest, user=None) -> ChatResponse:
+    """Run a chat round-trip. `user` is an optional models_db.User passed in by
+    the FastAPI route — its profile fields are injected into the system prompt
+    for personalized greetings, dialect, and tone matching."""
     articles: list[ChatNewsArticle] = []
 
-    system_prompt = build_system_prompt(request.native_language, request.target_language)
+    system_prompt = build_system_prompt(
+        request.native_language, request.target_language, user=user
+    )
 
     # Step 1: If user explicitly asks for news, search proactively
     if _is_news_request(request.message):

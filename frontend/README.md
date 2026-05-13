@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Speakly Frontend
 
-## Getting Started
+Next.js 16 (App Router + Turbopack) UI for the Speakly personalized AI voice assistant.
 
-First, run the development server:
+## Quick start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open http://localhost:3000. The backend is expected on `http://localhost:8000` (override with `NEXT_PUBLIC_API_URL`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | What it does |
+|---------|--------------|
+| `npm run dev` | Dev server (Turbopack, hot reload) |
+| `npm run build` | Production build (Turbopack) |
+| `npm run start` | Serve the production build |
+| `npm run lint` | ESLint |
 
-## Learn More
+## Routes
 
-To learn more about Next.js, take a look at the following resources:
+| Route | Auth | Description |
+|-------|------|-------------|
+| `/` | public | Landing page (hero + features + login/register CTAs) |
+| `/login` | public | Sign in form |
+| `/register` | public | Account + profile + optional voice sample |
+| `/chat` | **authed** | Sidebar + chat dashboard |
+| `/settings` | **authed** | Profile / password / voice sample |
+| `/translate` | public | Text translation |
+| `/news` | public | News search |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`middleware.ts` enforces redirects for the authed routes (no cookie → `/login?next=…`) and bounces logged-in users away from `/login` and `/register`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project layout
 
-## Deploy on Vercel
+See the top-level [`DOCUMENTATION.md`](../DOCUMENTATION.md) for the full file-by-file walkthrough. TL;DR:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+src/
+├── middleware.ts                 # route protection
+├── app/                          # one folder per route
+├── components/                   # shared UI (chat, auth, voice)
+├── hooks/                        # useAuth, useConversations, useChat, useSpeechRecognition
+├── lib/                          # api / auth-api / conversations-api / strings (i18n)
+└── types/                        # ChatMessage, Language, language code maps
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Conventions
+
+- **All API calls send `credentials: "include"`** so the `speakly_session` HttpOnly cookie travels.
+- **Theme** is driven by CSS variables in `globals.css`; toggle by adding/removing `.dark` on `<html>`. Bootstrap script in `layout.tsx` reads localStorage to avoid flash.
+- **i18n** is a flat map in `lib/strings.ts`. Always pull labels via `getStrings(language)`.
+- **Voice** input is a custom `MediaRecorder` wrapper in `hooks/useSpeechRecognition.ts` (no Web Speech API — we send audio to backend Whisper for accuracy).
+
+## Build verification
+
+```bash
+npx tsc --noEmit       # type-check
+npm run lint           # eslint
+npm run build          # full prod build
+```
+
+The repo currently builds with **0 errors, 3 unchanged pre-existing `<img>` warnings** (`Flag.tsx`, `ChatMessage.tsx` news-card thumbnails, `news/page.tsx` thumbnails).
